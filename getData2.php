@@ -24,13 +24,13 @@ while($row = mysqli_fetch_array($criteria))
     $target_ID = $row['ID'];
 }
 // get rates from target rates table
-$query = "SELECT * FROM rates WHERE url = '$target_ID' AND (date_p = '$from_date' OR date_p = '$to_date')";
+$query = "SELECT * FROM rates WHERE url = '$target_ID' AND date_p >= '$from_date' AND date_p <= '$to_date'";
 $target_rate = mysqli_query($conn, $query);
 // get rates from source rates
-$query = "SELECT * FROM $ezfxTb WHERE date_p = '$from_date' OR date_p = '$to_date'";
+$query = "SELECT * FROM $ezfxTb WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
 $source_rate = mysqli_query($conn, $query);
-$o_row = mysqli_fetch_array($source_rate);
-$o_num = mysqli_num_rows($source_rate);
+//$o_row = mysqli_fetch_array($source_rate);
+//$o_num = mysqli_num_rows($source_rate);
 
 //trim the target name
 if(strlen($target_name) > 10) {
@@ -49,16 +49,18 @@ $display_string .= "</tr>";
 $display_bid = "BID<br>".$display_string;
 $display_offer = "OFFER<br>".$display_string;
 
+
 while($row = mysqli_fetch_array($target_rate))
 {
     $ccyCode = substr($row['ID'],-6);
-    $t_bid = $row['Bid']; //Case sensitive
-    $t_offer = $row['Offer'];
+    $t_bid = $row['Bid']/$row['Unit']; //Case sensitive
+    $t_offer = $row['Offer']/$row['Unit'];
 
     $s_bid = 0;
     $s_offer = 0;
     $i = 0;
-    for($i = 0; $i < $o_num; $i++) {
+
+    while($o_row = mysqli_fetch_array($source_rate)) {
     	if($ccyCode == substr($o_row['ID'],-6) ){
     		if($o_row['Bid'] > $s_bid){
     			$s_bid = $o_row['Bid'];
@@ -68,28 +70,29 @@ while($row = mysqli_fetch_array($target_rate))
     		}
     	}
     }
-    if($s_bid != 0 || $s_offer != 0){
-    	if($t_bid != 0) {
-	    	$bid_dif = round(($t_bid - $s_bid)*100/$s_bid,2);
-	    	$display_bid .= "<tr><td>".$ccyCode."</td>
-	    									<td>".$t_bid."</td>
-	    									<td style=\"text-align: center\">".$bid_dif."</td>
-	    									<td>".$s_bid."</td></tr>";
-	    }
-	    if($t_offer != 0) {
-	    	$offer_dif = round(($t_offer - $s_offer)*100/$s_offer,2);
-	    	$display_offer .= "<tr><td>".$ccyCode."</td>
-	    									<td>".$t_offer."</td>
-	    									<td style=\"text-align: center\">".$offer_dif."</td>
-	    									<td>".$s_offer."</td></tr>";
-	    }
-
+    if($s_bid != 0 && $t_bid != 0){
+    	$bid_dif = round(($t_bid - $s_bid)*100/$s_bid,2);
+    	$display_bid .= "<tr><td>".$ccyCode."</td>
+    									<td>".$t_bid."</td>
+    									<td style=\"text-align: center\">".$bid_dif."</td>
+    									<td>".$s_bid."</td></tr>";
 	}
+    if($t_offer != 0 && $s_offer != 0) {
+    	$offer_dif = round(($t_offer - $s_offer)*100/$s_offer,2);
+    	$display_offer .= "<tr><td>".$ccyCode."</td>
+    									<td>".$t_offer."</td>
+    									<td style=\"text-align: center\">".$offer_dif."</td>
+    									<td>".$s_offer."</td></tr>";
+    }
+
+    #reset the pointer of mysqli_data_fetch
+    mysqli_data_seek($source_rate,0);
 }
 $display_bid .= "</table>";
 $display_offer .= "</table>";
 echo $display_bid;
 echo $display_offer;
+
 mysqli_close($conn);
 
 ?>
