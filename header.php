@@ -27,8 +27,14 @@
 	<!--[if lt IE 9]>
 	<script src="<?php echo get_template_directory_uri(); ?>/js/html5.js"></script>
 	<![endif]-->
-	<script type="text/javascript" src="jquery.js"></script>
-	<script type="text/javascript" src="getData.js"></script>
+	<script type="text/javascript" src="js/jquery.js"></script>
+	<!--<script type="text/javascript" src="getData.js"></script>-->
+	<?php if( get_the_title($post) == "Rate Comparison" ) { ?>
+		<script type="text/javascript" src="js/getData.js"></script>
+	<?php } ?>
+	<?php if( get_the_title($post) == "Rate Analysis" ) { ?>
+		<script type="text/javascript" src="js/getData2.js"></script>
+	<?php } ?>
 	<?php wp_head(); ?>
 </head>
 

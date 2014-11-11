@@ -33,10 +33,11 @@ $(function (){
        // Now get the value from user and pass it to
        // server script.
        var target_name = document.getElementById('target_name').value;
-       var chosen_date = document.getElementById('chosen_date').value;
+       var from_date = document.getElementById('from_date').value;
+       var to_date = document.getElementById('to_date').value;
        var queryString = "?target_name=" + target_name ;
-       queryString +=  "&chosen_date=" + chosen_date ;
-       ajaxRequest.open("GET", "js/getData.php" + 
+       queryString +=  "&from_date=" + from_date + "&to_date=" + to_date ;
+       ajaxRequest.open("GET", "js/getData2.php" + 
                                     queryString, true);
        ajaxRequest.send(null);
     });
