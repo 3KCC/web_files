@@ -49,7 +49,10 @@ $display_string .= "</tr>";
 $display_bid = "BID<br>".$display_string;
 $display_offer = "OFFER<br>".$display_string;
 
-
+$pp = 0;
+$sum = 0;
+$bid_array = [];
+$offer_array = [];
 while($row = mysqli_fetch_array($target_rate))
 {
     $ccyCode = substr($row['ID'],-6);
@@ -59,7 +62,6 @@ while($row = mysqli_fetch_array($target_rate))
     $s_bid = 0;
     $s_offer = 0;
     $i = 0;
-
     while($o_row = mysqli_fetch_array($source_rate)) {
     	if($ccyCode == substr($o_row['ID'],-6) ){
     		if($o_row['Bid'] > $s_bid){
@@ -79,10 +81,14 @@ while($row = mysqli_fetch_array($target_rate))
 	}
     if($t_offer != 0 && $s_offer != 0) {
     	$offer_dif = round(($t_offer - $s_offer)*100/$s_offer,2);
+        $pp++;
+        $sum += $offer_dif;
+        array_push($offer_array,$offer_dif);
+        $std_dev = stats_standard_deviation($offer_array);
     	$display_offer .= "<tr><td>".$ccyCode."</td>
-    									<td>".$t_offer."</td>
-    									<td style=\"text-align: center\">".$offer_dif."</td>
-    									<td>".$s_offer."</td></tr>";
+    									<td>".$pp."</td>
+    									<td style=\"text-align: center\">".$sum/$pp."</td>
+    									<td>".$std_dev."</td></tr>";
     }
 
     #reset the pointer of mysqli_data_fetch
