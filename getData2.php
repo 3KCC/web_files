@@ -25,8 +25,7 @@ while($row = mysqli_fetch_array($criteria))
     $target_ID = $row['ID'];
 }
 // get rates from target rates table
-if($target_ccy != '---All') {
-    echo $target_ccy;
+if(substr($target_ccy,-3) != 'All') {
     $query = "SELECT * FROM rates WHERE url = '$target_ID' AND RIGHT(ID,6) = '$target_ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
     $target_rate = mysqli_query($conn, $query);
     // get rates from source rates
