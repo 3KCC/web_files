@@ -33,9 +33,10 @@ $(function (){
        // Now get the value from user and pass it to
        // server script.
        var target_name = document.getElementById('target_name').value;
+       var CCY_pair = document.getElementById('CCY_pair').value;
        var from_date = document.getElementById('from_date').value;
        var to_date = document.getElementById('to_date').value;
-       var queryString = "?target_name=" + target_name ;
+       var queryString = "?target_name=" + target_name + "&CCY_pair=" + CCY_pair ;
        queryString +=  "&from_date=" + from_date + "&to_date=" + to_date ;
        ajaxRequest.open("GET", "js/getData2.php" + 
                                     queryString, true);
