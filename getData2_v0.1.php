@@ -29,6 +29,42 @@ $target_query = genQuery($target_name, $target_ccy)[0];
 $source_query = genQuery($target_name, $target_ccy)[1];
 $target_rate = mysqli_query($conn, $target_query);
 $source_rate = mysqli_query($conn, $source_query);
+/*
+//Case1: both target and ccy are specific. Eg: Travelex, AUDMYR
+if(substr($target_ccy,-3) != 'All' and substr($target_name,-3) != 'All') {
+    $query = "SELECT * FROM rates WHERE url = '$target_ID' AND RIGHT(ID,6) = '$target_ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+    $target_rate = mysqli_query($conn, $query);
+    // get rates from source rates
+    $query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$target_ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+    $source_rate = mysqli_query($conn, $query);
+    //$o_row = mysqli_fetch_array($source_rate);
+    //$o_num = mysqli_num_rows($source_rate);
+
+//Case2: only target is specific. Eg: Travelex, All
+}elseif(substr($target_ccy,-3) == 'All' and substr($target_name,-3) != 'All') {
+    $query = "SELECT * FROM rates WHERE url = '$target_ID' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+    $target_rate = mysqli_query($conn, $query);
+    // get rates from source rates
+    $query = "SELECT * FROM $ezfxTb WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
+    $source_rate = mysqli_query($conn, $query);
+
+//Case3: only ccy is specific. Eg: All, AUDMYR
+}elseif(substr($target_ccy,-3) != 'All' and substr($target_name,-3) == 'All') {
+    $query = "SELECT * FROM rates WHERE RIGHT(ID,6) = '$target_ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+    $target_rate = mysqli_query($conn, $query);
+    // get rates from source rates
+    $query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$target_ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+    $source_rate = mysqli_query($conn, $query);
+
+//Case4: All-All
+}else {
+    $query = "SELECT * FROM rates WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
+    $target_rate = mysqli_query($conn, $query);
+    // get rates from source rates
+    $query = "SELECT * FROM $ezfxTb WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
+    $source_rate = mysqli_query($conn, $query);
+}
+*/
 
 //trim the target name
 if(strlen($target_name) > 10) {
