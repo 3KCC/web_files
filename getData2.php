@@ -25,7 +25,8 @@ while($row = mysqli_fetch_array($criteria))
     $target_ID = $row['ID'];
 }
 // get rates from target rates table
-if(substr($target_ccy,-3) != 'All') {
+//Case1: both target and ccy are specific. Eg: Travelex, AUDMYR
+if(substr($target_ccy,-3) != 'All' and substr($target_name,-3) != 'All') {
     $query = "SELECT * FROM rates WHERE url = '$target_ID' AND RIGHT(ID,6) = '$target_ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
     $target_rate = mysqli_query($conn, $query);
     // get rates from source rates
@@ -33,8 +34,26 @@ if(substr($target_ccy,-3) != 'All') {
     $source_rate = mysqli_query($conn, $query);
     //$o_row = mysqli_fetch_array($source_rate);
     //$o_num = mysqli_num_rows($source_rate);
-}else {
+
+//Case2: only target is specific. Eg: Travelex, All
+}elseif(substr($target_ccy,-3) == 'All' and substr($target_name,-3) != 'All') {
     $query = "SELECT * FROM rates WHERE url = '$target_ID' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+    $target_rate = mysqli_query($conn, $query);
+    // get rates from source rates
+    $query = "SELECT * FROM $ezfxTb WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
+    $source_rate = mysqli_query($conn, $query);
+
+//Case3: only ccy is specific. Eg: All, AUDMYR
+}elseif(substr($target_ccy,-3) != 'All' and substr($target_name,-3) == 'All') {
+    $query = "SELECT * FROM rates WHERE RIGHT(ID,6) = '$target_ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+    $target_rate = mysqli_query($conn, $query);
+    // get rates from source rates
+    $query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$target_ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+    $source_rate = mysqli_query($conn, $query);
+
+//Case4: All-All
+}else {
+    $query = "SELECT * FROM rates WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
     $target_rate = mysqli_query($conn, $query);
     // get rates from source rates
     $query = "SELECT * FROM $ezfxTb WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
@@ -60,8 +79,6 @@ $display_string .= "</tr>";
 $display_bid = "<p style='text-align: left'>BID</p>".$display_string;
 $display_offer = "<p style='text-align: left'>OFFER</p>".$display_string;
 
-$pp_bid = 0; $pp_offer = 0;
-$sum_bid = 0; $sum_offer = 0;
 $bid_array = [];
 $offer_array = [];
 $_25th = 0.25; $_75th = 0.75;
@@ -71,6 +88,14 @@ while($row = mysqli_fetch_array($target_rate))
     $ccyCode = substr($row['ID'],-6);
     $t_bid = $row['Bid']/$row['Unit']; //Case sensitive
     $t_offer = $row['Offer']/$row['Unit'];
+    if($row['Inverse'] == 'Y'){
+        if($t_bid != 0){
+            $t_bid = 1/$t_bid; //Case sensitive
+        }
+        if($t_offer != 0){
+            $t_offer = 1/$t_offer;
+        }
+    }
 
     $s_bid = 0;
     $s_offer = 0;
@@ -123,21 +148,21 @@ foreach ($bid_array as $key=>$value) {
         $_25th_p = '- '; $_75th_p = '- ';
         if($pp > 1) {
             #Microsoft Exccel Algorithm
-            #find d,k : (N-1)*P + 1 = k + d (k: int, d: decimal)
+            #find d,k : (N-1)*P = k + d (k: int, d: decimal)
             #P_th = v_(k) + d*(v_(k+1) - v_(k))
-            $dk = ($pp - 1) * $_25th + 1;
+            $dk = ($pp - 1) * $_25th ;
             $k = floor($dk);
             $d = $dk - $k;
-            $_25th_p = round($value[$k-1] + $d * ($value[$k] - $value[$k-1]),2);
-            $dk = ($pp - 1) * $_75th + 1;
+            $_25th_p = round($value[$k] + $d * ($value[$k+1] - $value[$k]),2);
+            $dk = ($pp - 1) * $_75th;
             $k = floor($dk);
             $d = $dk - $k;
-            $_75th_p = round($value[$k-1] + $d * ($value[$k] - $value[$k-1]),2);
+            $_75th_p = round($value[$k] + $d * ($value[$k+1] - $value[$k]),2);
         }
         $display_bid .= "<tr><td>".$key."</td>
                                             <td style=\"text-align: center\">".$pp."</td>
                                             <td style=\"text-align: center\">".$mean."%</td>
-                                            <td>".$std_dev."%</td>
+                                            <td style=\"text-align: center\">".$std_dev."%</td>
                                             <td>".$_25th_p."%</td>
                                             <td>".$_75th_p."%</td></tr>";
     }
@@ -154,21 +179,21 @@ foreach ($offer_array as $key=>$value) {
         $_25th_p = '- '; $_75th_p = '- ';
         if($pp > 1) {
             #Microsoft Exccel Algorithm
-            #find d,k : (N-1)*P + 1 = k + d (k: int, d: decimal)
+            #find d,k : (N-1)*P = k + d (k: int, d: decimal)
             #P_th = v_(k) + d*(v_(k+1) - v_(k))
-            $dk = ($pp - 1) * $_25th + 1;
+            $dk = ($pp - 1) * $_25th;
             $k = floor($dk);
             $d = $dk - $k;
-            $_25th_p = round($value[$k-1] + $d * ($value[$k] - $value[$k-1]),2);
-            $dk = ($pp - 1) * $_75th + 1;
+            $_25th_p = round($value[$k] + $d * ($value[$k+1] - $value[$k]),2);
+            $dk = ($pp - 1) * $_75th;
             $k = floor($dk);
             $d = $dk - $k;
-            $_75th_p = round($value[$k-1] + $d * ($value[$k] - $value[$k-1]),2);
+            $_75th_p = round($value[$k] + $d * ($value[$k+1] - $value[$k]),2);
         }
         $display_offer .= "<tr><td>".$key."</td>
                                             <td style=\"text-align: center\">".$pp."</td>
                                             <td style=\"text-align: center\">".$mean."%</td>
-                                            <td>".$std_dev."%</td>
+                                            <td style=\"text-align: center\">".$std_dev."%</td>
                                             <td>".$_25th_p."%</td>
                                             <td>".$_75th_p."%</td></tr>";
     }
