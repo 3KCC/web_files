@@ -65,6 +65,7 @@ $sum_bid = 0; $sum_offer = 0;
 $bid_array = [];
 $offer_array = [];
 $_25th = 0.25; $_75th = 0.75;
+
 while($row = mysqli_fetch_array($target_rate))
 {
     $ccyCode = substr($row['ID'],-6);
@@ -85,74 +86,94 @@ while($row = mysqli_fetch_array($target_rate))
     	}
     }
     if($s_bid != 0 && $t_bid != 0){
-    	$bid_dif = round(($t_bid - $s_bid)*100/$s_bid,2);
-        $pp_bid++;
-        $sum_bid += $bid_dif;
-        array_push($bid_array,$bid_dif);
-        $mean_bid = round($sum_bid/$pp_bid,2);
-        $std_dev_bid = round(stats_standard_deviation($bid_array),2); 
+        $bid_dif = round(($t_bid - $s_bid)*100/$s_bid,2);
+        #check and find the array with the current ccy to push new data found
+        if (array_key_exists($ccyCode,$bid_array)){
+            #key name is $ccyCode
+            array_push($bid_array[$ccyCode],$bid_dif);
+        }else{
+            $bid_array[$ccyCode] = array($bid_dif);
+        }
 	}
     if($t_offer != 0 && $s_offer != 0) {
     	$offer_dif = round(($t_offer - $s_offer)*100/$s_offer,2);
-        $pp_offer++;
-        $sum_offer += $offer_dif;
-        array_push($offer_array,$offer_dif);
+        #check and find the array with the current ccy to push new data found
+        if (array_key_exists($ccyCode,$offer_array)){
+            #key name is $ccyCode
+            array_push($offer_array[$ccyCode],$offer_dif);
+        }else{
+            $offer_array[$ccyCode] = array($offer_dif);
+        }
     }
 
     #reset the pointer of mysqli_data_fetch
     mysqli_data_seek($source_rate,0);
 }
+
+#The bid_array and offer_array give the lists of [ccyA=>[dif1,dif2,dif3,...],ccyB=>[dif1,dif2,...],...]
 #if it has mean value(at least one data point), display it
-if(isset($mean_bid)){
-    $mean_bid = round($sum_bid/$pp_bid,2);
-    $std_dev_bid = round(stats_standard_deviation($bid_array),2);
-    sort($bid_array);
-    $_25th_bid = '- '; $_75th_bid = '- ';
-    if($pp_bid > 1) {
-        #Microsoft Exccel Algorithm
-        #find d,k : (N-1)*P + 1 = k + d (k: int, d: decimal)
-        #P_th = v_(k) + d*(v_(k+1) - v_(k))
-        $dk = ($pp_bid - 1) * $_25th + 1;
-        $k = floor($dk);
-        $d = $dk - $k;
-        $_25th_bid = round($bid_array[$k-1] + $d * ($bid_array[$k] - $bid_array[$k-1]),2);
-        $dk = ($pp_bid - 1) * $_75th + 1;
-        $k = floor($dk);
-        $d = $dk - $k;
-        $_75th_bid = round($bid_array[$k-1] + $d * ($bid_array[$k] - $bid_array[$k-1]),2);
+foreach ($bid_array as $key=>$value) {
+    # $key = ccyA
+    # $value = [dif1,dif2,....]
+    $pp = count($value);
+    if($pp != 0){
+        $mean = round(array_sum($value)/$pp,2); 
+        $std_dev = round(stats_standard_deviation($value),2);
+        sort($value);
+        $_25th_p = '- '; $_75th_p = '- ';
+        if($pp > 1) {
+            #Microsoft Exccel Algorithm
+            #find d,k : (N-1)*P + 1 = k + d (k: int, d: decimal)
+            #P_th = v_(k) + d*(v_(k+1) - v_(k))
+            $dk = ($pp - 1) * $_25th + 1;
+            $k = floor($dk);
+            $d = $dk - $k;
+            $_25th_p = round($value[$k-1] + $d * ($value[$k] - $value[$k-1]),2);
+            $dk = ($pp - 1) * $_75th + 1;
+            $k = floor($dk);
+            $d = $dk - $k;
+            $_75th_p = round($value[$k-1] + $d * ($value[$k] - $value[$k-1]),2);
+        }
+        $display_bid .= "<tr><td>".$key."</td>
+                                            <td style=\"text-align: center\">".$pp."</td>
+                                            <td style=\"text-align: center\">".$mean."%</td>
+                                            <td>".$std_dev."%</td>
+                                            <td>".$_25th_p."%</td>
+                                            <td>".$_75th_p."%</td></tr>";
     }
-    $display_bid .= "<tr><td>".$ccyCode."</td>
-                                        <td style=\"text-align: center\">".$pp_bid."</td>
-                                        <td style=\"text-align: center\">".$mean_bid."%</td>
-                                        <td>".$std_dev_bid."%</td>
-                                        <td>".$_25th_bid."%</td>
-                                        <td>".$_75th_bid."%</td></tr>";
 }
-if($pp_offer != 0){
-    $mean_offer = round($sum_offer/$pp_offer,2);
-    $std_dev_offer = round(stats_standard_deviation($offer_array),2);
-    sort($offer_array);
-    $_25th_offer = '- '; $_75th_offer = '- ';
-    if($pp_offer > 1) {
-        #Microsoft Exccel Algorithm
-        #find d,k : (N-1)*P + 1 = k + d (k: int, d: decimal)
-        #P_th = v_(k) + d*(v_(k+1) - v_(k))
-        $dk = ($pp_offer - 1) * $_25th + 1;
-        $k = floor($dk);
-        $d = $dk - $k;
-        $_25th_offer = round($offer_array[$k-1] + $d * ($offer_array[$k] - $offer_array[$k-1]),2);
-        $dk = ($pp_offer - 1) * $_75th + 1;
-        $k = floor($dk);
-        $d = $dk - $k;
-        $_75th_offer = round($offer_array[$k-1] + $d * ($offer_array[$k] - $offer_array[$k-1]),2);
+
+foreach ($offer_array as $key=>$value) {
+    # $key = ccyA
+    # $value = [dif1,dif2,....]
+    $pp = count($value);
+    if($pp != 0){
+        $mean = round(array_sum($value)/$pp,2); 
+        $std_dev = round(stats_standard_deviation($value),2);
+        sort($value);
+        $_25th_p = '- '; $_75th_p = '- ';
+        if($pp > 1) {
+            #Microsoft Exccel Algorithm
+            #find d,k : (N-1)*P + 1 = k + d (k: int, d: decimal)
+            #P_th = v_(k) + d*(v_(k+1) - v_(k))
+            $dk = ($pp - 1) * $_25th + 1;
+            $k = floor($dk);
+            $d = $dk - $k;
+            $_25th_p = round($value[$k-1] + $d * ($value[$k] - $value[$k-1]),2);
+            $dk = ($pp - 1) * $_75th + 1;
+            $k = floor($dk);
+            $d = $dk - $k;
+            $_75th_p = round($value[$k-1] + $d * ($value[$k] - $value[$k-1]),2);
+        }
+        $display_offer .= "<tr><td>".$key."</td>
+                                            <td style=\"text-align: center\">".$pp."</td>
+                                            <td style=\"text-align: center\">".$mean."%</td>
+                                            <td>".$std_dev."%</td>
+                                            <td>".$_25th_p."%</td>
+                                            <td>".$_75th_p."%</td></tr>";
     }
-    $display_offer .= "<tr><td>".$ccyCode."</td>
-                                        <td style=\"text-align: center\">".$pp_offer."</td>
-                                        <td style=\"text-align: center\">".$mean_offer."%</td>
-                                        <td style=\"text-align: center\">".$std_dev_offer."%</td>
-                                        <td>".$_25th_offer."%</td>
-                                        <td>".$_75th_offer."%</td></tr>";
 }
+
 $display_bid .= "</table>";
 $display_offer .= "</table>";
 echo $display_bid;
