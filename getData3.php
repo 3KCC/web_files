@@ -93,7 +93,10 @@ while($row = mysqli_fetch_array($target_rate))
 
 #The bid_array and offer_array give the lists of [ccyA=>[dif1,dif2,dif3,...],ccyB=>[dif1,dif2,...],...]
 #foreach ($offer_array as $key=>$value){
-    echo json_encode($offer_array['AUDMYR']);
+if(array_key_exists($ccyCode,$offer_array)) {
+    sort($offer_array[$ccyCode]);
+    echo json_encode($offer_array[$ccyCode]);
+}
 #}
 
 

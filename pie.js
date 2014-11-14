@@ -25,48 +25,56 @@ $(function (){
        // sent from the server and will update
        // div section in the same page.
        ajaxRequest.onreadystatechange = function(){
+          var data = [0];
+          var row = [0];
          if(ajaxRequest.readyState == 4){
-            var js_obj_data = JSON.parse(ajaxRequest.responseText);
-            var pp = js_obj_data.length;
-         }
-
-         // Load the Visualization API and the piechart package.
-          google.load('visualization', '1.0', {'packages':['corechart']});
-
-          // Set a callback to run when the Google Visualization API is loaded.
-          google.setOnLoadCallback(drawChart());
-
-          // Callback that creates and populates a data table,
-          // instantiates the pie chart, passes in the data and
-          // draws it.
-          function drawChart(){
-            // Create the data table.
-            var data = new google.visualization.DataTable();
-            data.addColumn('number', 'spread');
-            data.addColumn('number', 'percentage');
-            var index = 0; num = 0; per = 0; count = 0;
-            alert(js_obj_data);
-            for(var i = 0; i < 4; i++){
-
-              index += Math.round(pp/4-1);
-              num = js_obj_data[index];
-              per = (js_obj_data.slice(0,index+1).length - count ) / pp;
-              count += js_obj_data.slice(0,index+1).length;
-              data.addRows([num, per]);
-            }
-            alert('a');
-            // Set chart options
-            var options = {'title':'How Much Pizza I Ate Last Night',
-                           'width':400,
-                           'height':300};
-
-            // Instantiate and draw our chart, passing in some options.
-            var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-            chart.draw(data, options);
-          }
+            js_obj_data = ajaxRequest.responseText;
+            if(js_obj_data){
+              var js_obj_data = JSON.parse(ajaxRequest.responseText);
+              //prepare data
+              var pp = js_obj_data.length;
+               
+              var index = 0; per = 0; count = 0;
+              for(var i = 0; i < 4; i++) {
+                index = Math.round(pp/4 * (i+1) - 1);
+                num = js_obj_data[index];
+                per = Math.round((js_obj_data.slice(0,index+1).length - count )*100 / pp,4);
+                count = js_obj_data.slice(0,index+1).length;
+                data.push(per);
+                row.push(num);
+              }
 
 
-       }
+            var buyerData = {
+              labels : row,
+              datasets : [
+                {
+                  fillColor : "rgba(172,194,132,0.4)",
+                  strokeColor : "#ACC26D",
+                  pointColor : "#fff",
+                  pointStrokeColor : "#9DB86D",
+                  data : data
+                }
+              ]
+            };
+       var buyers = document.getElementById('buyers').getContext('2d');
+       myLineChart = new Chart(buyers).Line(buyerData);
+     } else {
+        var w = $('#buyers').width();
+        var h = $('#buyers').height();
+       $('#buyers').remove(); // this is my <canvas> element
+       $('#graph-containers').append('<canvas id="buyers"></canvas>');
+       
+        var buyers = document.getElementById('buyers').getContext('2d');
+        buyers.canvas.width = w; // resize to parent width
+        buyers.canvas.height = h; // resize to parent height
+       buyers.font="30px Verdana";
+       buyers.fillText("No data to display!",50,50);
+
+     }
+   }
+   };
+
        // Now get the value from user and pass it to
        // server script.
        var target_name = document.getElementById('target_name').value;
