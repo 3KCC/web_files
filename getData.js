@@ -33,9 +33,20 @@ $(function (){
        // Now get the value from user and pass it to
        // server script.
        var target_name = document.getElementById('target_name').value;
+       var source_name = document.getElementById('source_name').value;
        var chosen_date = document.getElementById('chosen_date').value;
+       var view_as = document.getElementsByClassName('view_as');
+
+       for (var i = 0; i < view_as.length; i++) {
+          if (view_as[i].type === "radio" && view_as[i].checked) {
+            view_as = view_as[i].value;
+            break;
+          };
+       }
        var queryString = "?target_name=" + target_name ;
+       queryString +=  "&source_name=" + source_name ;
        queryString +=  "&chosen_date=" + chosen_date ;
+       queryString +=  "&view_as=" + view_as ;
        ajaxRequest.open("GET", "js/getData.php" + 
                                     queryString, true);
        ajaxRequest.send(null);
