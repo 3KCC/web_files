@@ -56,6 +56,9 @@ $_25th = 0.25; $_75th = 0.75;
 while($row = mysqli_fetch_array($target_rate))
 {
     $ccyCode = substr($row['ID'],-6);
+    if(trim($row['Unit']) == '1M'){
+        $row['Unit'] = 1000000;
+    }
     $t_bid = $row['Bid']/$row['Unit']; //Case sensitive
     $t_offer = $row['Offer']/$row['Unit'];
     if($row['Inverse'] == 'Y'){
