@@ -94,10 +94,21 @@ while($row = mysqli_fetch_array($target_rate))
         } else{
            $bid_dif = number_format(($t_bid - $s_bid) * 100 / $s_bid, 2);
         }
-    	$display_bid .= "<tr><td>".$ccyCode."</td>
-    									<td>".number_format($t_bid,4)."</td>
+
+        $display_bid .= "<tr><td>".$ccyCode."</td>";
+        if($bid_dif > 0){
+    	   $display_bid .= "<td><font color='#24890d'><b>".number_format($t_bid,4)."</b></font></td>
     									<td style=\"text-align: center\">".$bid_dif."</td>
     									<td>".number_format($s_bid,4)."</td></tr>";
+        }elseif($bid_dif < 0){
+            $display_bid .= "<td>".number_format($t_bid,4)."</td>
+                                        <td style=\"text-align: center\">".$bid_dif."</td>
+                                        <td><font color='#24890d'><b>".number_format($s_bid,4)."</b></font></td></tr>";
+        }else{
+            $display_bid .= "<td>".number_format($t_bid,4)."</td>
+                                        <td style=\"text-align: center\">".$bid_dif."</td>
+                                        <td>".number_format($s_bid,4)."</td></tr>";
+        }
 	}
     if($s_offer != 0 && $t_offer != 0) {
         if($view_as == 'pip'){
@@ -105,10 +116,22 @@ while($row = mysqli_fetch_array($target_rate))
         } else{
            $offer_dif = number_format(($t_offer - $s_offer) * 100 / $s_offer,2);
         }
-    	$display_offer .= "<tr><td>".$ccyCode."</td>
+        if($offer_dif > 0){
+    	   $display_offer .= "<tr><td>".$ccyCode."</td>
     									<td>".number_format($t_offer,4)."</td>
     									<td style=\"text-align: center\">".$offer_dif."</td>
-    									<td>".number_format($s_offer,4)."</td></tr>";
+    									<td><font color='#24890d'><b>".number_format($s_offer,4)."</b></font></td></tr>";
+        }elseif($offer_dif < 0){
+            $display_offer .= "<tr><td>".$ccyCode."</td>
+                                        <td><font color='#24890d'><b>".number_format($t_offer,4)."</b></font></td>
+                                        <td style=\"text-align: center\">".$offer_dif."</td>
+                                        <td>".number_format($s_offer,4)."</td></tr>";
+        }else{
+            $display_offer .= "<tr><td>".$ccyCode."</td>
+                                        <td>".number_format($t_offer,4)."</td>
+                                        <td style=\"text-align: center\">".$offer_dif."</td>
+                                        <td>".number_format($s_offer,4)."</td></tr>";
+        }
     }
 
     #reset the pointer of mysqli_data_fetch

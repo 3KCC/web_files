@@ -25,16 +25,20 @@ $(function (){
        // sent from the server and will update
        // div section in the same page.
        ajaxRequest.onreadystatechange = function(){
-          var data = [0];
-          var row = [0];
+          var data = [];
+          var row = [];
          if(ajaxRequest.readyState == 4){
             js_obj_data = ajaxRequest.responseText;
             if(js_obj_data){
               var js_obj_data = JSON.parse(ajaxRequest.responseText);
               //prepare data
               var pp = js_obj_data.length;
-               
+              var min = js_obj_data[0];
+              var max = js_obj_data[pp-1];
+
               var index = 0; per = 0; count = 0;
+              data.push('0');
+              row.push(min);
               for(var i = 0; i < 4; i++) {
                 index = Math.round(pp/4 * (i+1) - 1);
                 num = js_obj_data[index];
@@ -43,7 +47,8 @@ $(function (){
                 data.push(per);
                 row.push(num);
               }
-
+              row.push(max);
+              data.push(0);
 
             var buyerData = {
               labels : row,

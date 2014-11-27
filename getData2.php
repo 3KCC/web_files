@@ -40,10 +40,12 @@ $display_string = "<table>";
 $display_string .= "<tr>";
 $display_string .= "<th>CCY Pair</th>";
 $display_string .= "<th style=\"text-align: center\">Population (&omega;)</th>";
-$display_string .= "<th style=\"text-align: center\">Mean (<font style='text-transform: lowercase'>&micro;</font>)</th>";
 $display_string .= "<th style=\"text-align: center\">Std. Dev. (<font style='text-transform: lowercase'>&#963;</font>)</th>";
+$display_string .= "<th>Min</th>";
 $display_string .= "<th><font style='text-transform: lowercase'>25th</font></th>";
-$display_string .= "<th><font style='text-transform: lowercase'>75th</font</th>";
+$display_string .= "<th style=\"text-align: center\">Mean (<font style='text-transform: lowercase'>&micro;</font>)</th>";
+$display_string .= "<th><font style='text-transform: lowercase'>75th</font></th>";
+$display_string .= "<th>Max</th>";
 $display_string .= "</tr>";
 
 $display_bid = "<p style='text-align: left'>BID</p>".$display_string;
@@ -114,6 +116,8 @@ foreach ($bid_array as $key=>$value) {
     # $key = ccyA
     # $value = [dif1,dif2,....]
     $pp = count($value);
+    $min = min($value);
+    $max = max($value);
     if($pp != 0){
         $mean = round(array_sum($value)/$pp,2); 
         $std_dev = round(stats_standard_deviation($value),2);
@@ -134,10 +138,12 @@ foreach ($bid_array as $key=>$value) {
         }
         $display_bid .= "<tr><td>".$key."</td>
                                             <td style=\"text-align: center\">".$pp."</td>
-                                            <td style=\"text-align: center\">".$mean."%</td>
                                             <td style=\"text-align: center\">".$std_dev."%</td>
+                                            <td style=\"text-align: center\">".$min."%</td>
                                             <td>".$_25th_p."%</td>
-                                            <td>".$_75th_p."%</td></tr>";
+                                            <td style=\"text-align: center\">".$mean."%</td>
+                                            <td>".$_75th_p."%</td>
+                                            <td style=\"text-align: center\">".$max."%</td></tr>";
     }
 }
 
@@ -145,6 +151,8 @@ foreach ($offer_array as $key=>$value) {
     # $key = ccyA
     # $value = [dif1,dif2,....]
     $pp = count($value);
+    $min = min($value);
+    $max = max($value);
     if($pp != 0){
         $mean = round(array_sum($value)/$pp,2); 
         $std_dev = round(stats_standard_deviation($value),2);
@@ -165,10 +173,12 @@ foreach ($offer_array as $key=>$value) {
         }
         $display_offer .= "<tr><td>".$key."</td>
                                             <td style=\"text-align: center\">".$pp."</td>
-                                            <td style=\"text-align: center\">".$mean."%</td>
                                             <td style=\"text-align: center\">".$std_dev."%</td>
+                                            <td style=\"text-align: center\">".$min."%</td>
                                             <td>".$_25th_p."%</td>
-                                            <td>".$_75th_p."%</td></tr>";
+                                            <td style=\"text-align: center\">".$mean."%</td>
+                                            <td>".$_75th_p."%</td>
+                                            <td style=\"text-align: center\">".$max."%</td></tr>";
     }
 }
 
