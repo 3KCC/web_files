@@ -8,8 +8,9 @@ $target_ccy = $_GET['CCY_pair'];
 $from_date = $_GET['from_date'];
 $to_date = $_GET['to_date'];
 // Change the formate
-$from_date = date("d-m-Y", strtotime($from_date));
-$to_date = date("d-m-Y", strtotime($to_date));
+$from_date = date("Y-m-d", strtotime($from_date));
+$to_date = date("Y-m-d", strtotime($to_date));
+
 // Database connection
 $conn = mysqli_connect("localhost","root","ezfx0109","crawlerdb");
 if(!$conn) {
@@ -197,27 +198,27 @@ function genQuery($target, $ccy){
             $ezfxTb;
     //Case1: both target and ccy are specific. Eg: Travelex, AUDMYR
     if(substr($ccy,-3) != 'All' and substr($target,-3) != 'All') {
-        $target_query = "SELECT * FROM rates WHERE url = '$target_ID' AND RIGHT(ID,6) = '$ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+        $target_query = "SELECT * FROM rates WHERE url = '$target_ID' AND RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p,'%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p,'%d-%m-%Y') <= '$to_date'";
         // get rates from source rates
-        $source_query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+        $source_query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p,'%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p,'%d-%m-%Y') <= '$to_date'";
         
     //Case2: only target is specific. Eg: Travelex, All
     }elseif(substr($ccy,-3) == 'All' and substr($target,-3) != 'All') {
-        $target_query = "SELECT * FROM rates WHERE url = '$target_ID' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+        $target_query = "SELECT * FROM rates WHERE url = '$target_ID' AND STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
         // get rates from source rates
-        $source_query = "SELECT * FROM $ezfxTb WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
+        $source_query = "SELECT * FROM $ezfxTb WHERE STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
 
     //Case3: only ccy is specific. Eg: All, AUDMYR
     }elseif(substr($ccy,-3) != 'All' and substr($target,-3) == 'All') {
-        $target_query = "SELECT * FROM rates WHERE RIGHT(ID,6) = '$ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+        $target_query = "SELECT * FROM rates WHERE RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
         // get rates from source rates
-        $source_query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$ccy' AND date_p >= '$from_date' AND date_p <= '$to_date'";
+        $source_query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
 
     //Case4: All-All
     }else {
-        $target_query = "SELECT * FROM rates WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
+        $target_query = "SELECT * FROM rates WHERE STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
         // get rates from source rates
-        $source_query = "SELECT * FROM $ezfxTb WHERE date_p >= '$from_date' AND date_p <= '$to_date'";
+        $source_query = "SELECT * FROM $ezfxTb WHERE STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
     }
 
     return array($target_query, $source_query);

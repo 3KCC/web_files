@@ -7,7 +7,7 @@ $target_name = $_GET['target_name'];
 $target_ccy = $_GET['CCY_pair'];
 $from_date = $_GET['from_date'];
 $to_date = $_GET['to_date'];
-// Change the formate
+// Change the format
 $from_date = date("d-m-Y", strtotime($from_date));
 $to_date = date("d-m-Y", strtotime($to_date));
 // Database connection
