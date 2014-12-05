@@ -35,14 +35,16 @@ if(strlen($target_name) > 10) {
     $target_name = $target_ID;
 }
 
-$bid_array = [];
-$offer_array = [];
+$array = [];
+$t_array = [];
+$s_array = [];
+$t_time = [];
+$s_time = [];
 $_25th = 0.25; $_75th = 0.75;
 
+#fetch the target data
 while($row = mysqli_fetch_array($target_rate))
 {
-    $ccyCode = substr($row['ID'],-6);
-    if(trim($row['Unit']) == '1M'){ $row['Unit'] = 1000000;}
     $t_bid = $row['Bid']/$row['Unit']; //Case sensitive
     $t_offer = $row['Offer']/$row['Unit'];
     if($row['Inverse'] == 'Y'){
@@ -53,54 +55,46 @@ while($row = mysqli_fetch_array($target_rate))
             $t_offer = 1/$t_offer;
         }
     }
-
-    $s_bid = 0;
-    $s_offer = 0;
-    $i = 0;
-    while($o_row = mysqli_fetch_array($source_rate)) {
-    	if($ccyCode == substr($o_row['ID'],-6) && $o_row['Date_p'] == $row['Date_p']){
-    		if($o_row['Bid'] > $s_bid){
-    			$s_bid = $o_row['Bid'];
-    		}
-    		if($s_offer == 0 || $o_row['Offer'] < $s_offer){
-    			$s_offer = $o_row['Offer'];
-    		}
-    	}
-    }
-    if($s_bid != 0 && $t_bid != 0){
-        $bid_dif = round(($t_bid - $s_bid)*100/$s_bid,2);
-        #check and find the array with the current ccy to push new data found
-        if (array_key_exists($ccyCode,$bid_array)){
-            #key name is $ccyCode
-            array_push($bid_array[$ccyCode],$bid_dif);
-        }else{
-            $bid_array[$ccyCode] = array($bid_dif);
-        }
-	}
-    if($t_offer != 0 && $s_offer != 0) {
-    	$offer_dif = round(($t_offer - $s_offer)*100/$s_offer,2);
-        #check and find the array with the current ccy to push new data found
-        if (array_key_exists($ccyCode,$offer_array)){
-            #key name is $ccyCode
-            array_push($offer_array[$ccyCode],$offer_dif);
-        }else{
-            $offer_array[$ccyCode] = array($offer_dif);
-        }
-    }
-
-    #reset the pointer of mysqli_data_fetch
-    mysqli_data_seek($source_rate,0);
+    array_push($t_time, $row['Date_p']); //record time to match later
+    array_push($t_array,$t_offer);
 }
 
-#The bid_array and offer_array give the lists of [ccyA=>[dif1,dif2,dif3,...],ccyB=>[dif1,dif2,...],...]
-#foreach ($offer_array as $key=>$value){
-if(array_key_exists($ccyCode,$offer_array)) {
-    sort($offer_array[$ccyCode]);
-    echo json_encode($offer_array[$ccyCode]);
+#fetch the source data where the date match
+while($row = mysqli_fetch_array($source_rate)){
+    if(in_array($row['Date_p'], $t_time)){
+        if(array_key_exists($row['Date_p'], $s_array)){
+            #get the best rates for EZFX
+            /*$row['Bid'] = $row['Bid']/$row['Unit'];
+            if($row['Bid'] > $s_bid[$row['Date_p']]){
+                $s_bid[$row['Date_p']] = $row['Bid'];
+            }
+            */
+            $row['Offer'] = $row['Offer']/$row['Unit'];
+            if($row['Offer'] < $s_array[$row['Date_p']]){
+                $s_array[$row['Date_p']] = $row['Offer'];
+            }
+        }else{
+            array_push($s_time, $row['Date_p']); //record only the matched dates
+            $s_array[$row['Date_p']] = $row['Offer']/$row['Unit'];
+        }
+    }
 }
-#}
 
 
+#remove unmatch data from target
+foreach($t_time as $value){
+    if(!in_array($value, $s_time)){
+        unset($t_array[array_search($value, $t_time)]); //unset leaves all of the index values the same after an element is deleted
+    }
+}
+#reset index
+$t_array = array_values($t_array);
+array_push($array, $t_array, $s_array, $s_time);
+
+#not empty source array means target array also no empty and so does the time array
+if(!empty($s_array)) {
+    echo json_encode($array);
+}
 
 mysqli_close($conn);
 

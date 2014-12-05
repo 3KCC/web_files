@@ -28,50 +28,56 @@ $(function (){
         if(typeof myLineChart !== 'undefined'){
           myLineChart.destroy();
         }
-          var data = [];
+          var data1 = [], data2 = [];
           var row = [];
          if(ajaxRequest.readyState == 4){
             js_obj_data = ajaxRequest.responseText;
-            if(js_obj_data){
+            alert(js_obj_data);
+            if(js_obj_data.length > 0){
               var js_obj_data = JSON.parse(ajaxRequest.responseText);
               //prepare data
-              var pp = js_obj_data.length;
-              var min = js_obj_data[0];
-              var max = js_obj_data[pp-1];
-
-              var index = 0; per = 0; count = 0;
-              data.push('0');
-              row.push(min);
-              for(var i = 0; i < 3; i++) {
-                index = Math.round(pp/4 * (i+1) - 1);
-                num = js_obj_data[index];
-                per = Math.round((js_obj_data.slice(0,index+1).length - count )*100 / pp,4);
-                count = js_obj_data.slice(0,index+1).length;
-                data.push(per);
-                row.push(num);
-              }
-              row.push(max);
-              data.push(0);
+              data1 = js_obj_data[0];
+              data2 = js_obj_data[1];
+              row = js_obj_data[2];
 
             var buyerData = {
               labels : row,
               datasets : [
                 {
+                  label: target_name,
                   fillColor : "rgba(172,194,132,0.4)",
                   strokeColor : "#ACC26D",
                   pointColor : "#fff",
                   pointStrokeColor : "#9DB86D",
-                  data : data
+                  data : data1
+                },
+                {
+                  label: 'EZFX',
+                  fillColor: "rgba(151,187,205,0.2)",
+                  strokeColor: "rgba(151,187,205,1)",
+                  pointColor: "rgba(151,187,205,1)",
+                  pointStrokeColor: "#fff",
+                  data : data2
                 }
               ]
             };
-       var buyers = document.getElementById('buyers').getContext('2d');
-       myLineChart = new Chart(buyers).Line(buyerData);
+       var canvas = document.getElementById('buyers');
+       var buyers = canvas.getContext('2d');
+       myLineChart = new Chart(buyers).Line(buyerData,{
+        //String - A legend template
+        legendTemplate : 
+          "<% for (var i=0; i<datasets.length; i++){%><span class=\"legend\" style=\"border-color: <%=datasets[i].strokeColor%>\"><%if(datasets[i].label){%><%=datasets[i].label%><%}%></span><%}%>"
+       });
+       //generate the legend
+        var legend = myLineChart.generateLegend();
+        //and append it to the page
+        $('#legend_container').empty().append(legend);
+
      } else {
         var w = $('#buyers').width();
         var h = $('#buyers').height();
        $('#buyers').remove(); // this is my <canvas> element
-       $('#graph-containers').append('<canvas id="buyers"></canvas>');
+       $('#graph-containers').prepend('<canvas id="buyers"></canvas>');
        
         var buyers = document.getElementById('buyers').getContext('2d');
         buyers.canvas.width = w; // resize to parent width
@@ -91,7 +97,7 @@ $(function (){
        var to_date = document.getElementById('to_date').value;
        var queryString = "?target_name=" + target_name + "&CCY_pair=" + CCY_pair ;
        queryString +=  "&from_date=" + from_date + "&to_date=" + to_date ;
-       ajaxRequest.open("GET", "js/getData3.php" + 
+       ajaxRequest.open("GET", "js/lineChart.php" + 
                                     queryString, true);
        ajaxRequest.send(null);
     });
