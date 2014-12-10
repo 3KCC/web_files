@@ -3,7 +3,8 @@
 $source_name = 'EZFX';
 $ezfxTb = 'ezfxrates';
 // Get data
-$target_name = $_GET['target_name'];
+$targets = $_GET['targets'];
+$targets = json_decode($targets);
 $target_ccy = $_GET['CCY_pair'];
 $from_date = $_GET['from_date'];
 $to_date = $_GET['to_date'];
@@ -16,84 +17,93 @@ if(!$conn) {
 die('Problem in database connection: ' . mysqli_error());
 }
 
-// get ID from database table url
-$query = "SELECT * FROM url WHERE name = '$target_name' ";
-$criteria = mysqli_query($conn, $query);
+$rates_array = [];
+$time_array = [];
+$reduced_time_array = [];
+foreach($targets AS $target_name){
+    // get ID from database table url
+    $query = "SELECT * FROM url WHERE name = '$target_name' ";
+    $criteria = mysqli_query($conn, $query);
 
-while($row = mysqli_fetch_array($criteria))
-{
-    $target_ID = $row['ID'];
-}
-// get rates from target rates table
-$target_query = genQuery($target_name, $target_ccy)[0];
-$source_query = genQuery($target_name, $target_ccy)[1];
-$target_rate = mysqli_query($conn, $target_query);
-$source_rate = mysqli_query($conn, $source_query);
-
-//trim the target name
-if(strlen($target_name) > 10) {
-    $target_name = $target_ID;
-}
-
-$array = [];
-$t_array = [];
-$s_array = [];
-$t_time = [];
-$s_time = [];
-$_25th = 0.25; $_75th = 0.75;
-
-#fetch the target data
-while($row = mysqli_fetch_array($target_rate))
-{
-    $t_bid = $row['Bid']/$row['Unit']; //Case sensitive
-    $t_offer = $row['Offer']/$row['Unit'];
-    if($row['Inverse'] == 'Y'){
-        if($t_bid != 0){
-            $t_bid = 1/$t_bid; //Case sensitive
-        }
-        if($t_offer != 0){
-            $t_offer = 1/$t_offer;
-        }
+    while($row = mysqli_fetch_array($criteria))
+    {
+        $target_ID = $row['ID'];
     }
-    array_push($t_time, $row['Date_p']); //record time to match later
-    array_push($t_array,$t_offer);
-}
+    // get rates from target rates table
+    $target_query = genQuery($target_name, $target_ccy);
+    $target_rate = mysqli_query($conn, $target_query);
 
-#fetch the source data where the date match
-while($row = mysqli_fetch_array($source_rate)){
-    if(in_array($row['Date_p'], $t_time)){
-        if(array_key_exists($row['Date_p'], $s_array)){
-            #get the best rates for EZFX
-            /*$row['Bid'] = $row['Bid']/$row['Unit'];
-            if($row['Bid'] > $s_bid[$row['Date_p']]){
-                $s_bid[$row['Date_p']] = $row['Bid'];
-            }
-            */
-            $row['Offer'] = $row['Offer']/$row['Unit'];
-            if($row['Offer'] < $s_array[$row['Date_p']]){
-                $s_array[$row['Date_p']] = $row['Offer'];
-            }
-        }else{
-            array_push($s_time, $row['Date_p']); //record only the matched dates
-            $s_array[$row['Date_p']] = $row['Offer']/$row['Unit'];
-        }
+    //trim the target name
+    if(strlen($target_name) > 10) {
+        $target_name = $target_ID;
     }
-}
+
+    $t_array = [];
+    $t_time = [];
+
+    #fetch the target data
+    while($row = mysqli_fetch_array($target_rate)){
+        if(in_array($row['Date_p'], $reduced_time_array) || empty($reduced_time_array)){
+            $t_bid = $row['Bid']/$row['Unit']; //Case sensitive
+            $t_offer = $row['Offer']/$row['Unit'];
+            if(array_key_exists('Inverse', $row) && $row['Inverse'] == 'Y'){
+                if($t_bid != 0){
+                    $t_bid = 1/$t_bid; //Case sensitive
+                }
+                if($t_offer != 0){
+                    $t_offer = 1/$t_offer;
+                }
+            }
+            if($target_name != 'EZFX'){
+                array_push($t_time, $row['Date_p']); //record time to match later
+                array_push($t_array,number_format($t_offer,4));
+            }else{
+                #if there is a rate for this particular date
+                if(in_array($row['Date_p'], $t_time)){
+
+                    #find the index of date_p in t_time array
+                    $index_date = array_search($row['Date_p'], $t_time);
+                    #get the best rates for EZFX_BID
+                    /*if($row['Bid'] > $s_bid[$row['Date_p']]){
+                        $s_bid[$row['Date_p']] = $row['Bid'];
+                    }*/
+                    #OFFER
+                    if($t_offer < $t_array[$index_date]){
+                        $t_array[$index_date] = $t_offer;
+                    }
+                }else{
+                    array_push($t_time, $row['Date_p']); //record time to match later
+                    array_push($t_array,number_format($t_offer,4));
+                }
+            }
+        }//end if date_p is in reduce_time_array
+    }//end fetching data
+
+    //push a set of data into the main array: [ [data1], [data2], ... ]
+    array_push($rates_array, $t_array);
+    //record time array to reduce later: [ [time1], [time2], ... ]
+    array_push($time_array, $t_time);
+    //set reduced time array = current target time array
+    $reduced_time_array = $t_time;
+
+}// end for loop through all targets specified
 
 
 #remove unmatch data from target
-foreach($t_time as $value){
-    if(!in_array($value, $s_time)){
-        unset($t_array[array_search($value, $t_time)]); //unset leaves all of the index values the same after an element is deleted
+for($i = 0; $i < sizeof($time_array); $i++){
+    foreach($time_array[$i] as $value){
+        if(!in_array($value, $reduced_time_array)){
+            $index_val = array_search($value, $time_array[$i]);
+            unset($rates_array[$i][$index_val]); //unset leaves all of the index values the same after an element is deleted
+        }
     }
+    #reset index
+    array_values($rates_array[$i]);
 }
-#reset index
-$t_array = array_values($t_array);
-array_push($array, $t_array, $s_array, $s_time);
 
 #not empty source array means target array also no empty and so does the time array
-if(!empty($s_array)) {
-    echo json_encode($array);
+if(!empty($reduced_time_array)) {
+    echo json_encode([$rates_array,$reduced_time_array]);
 }
 
 mysqli_close($conn);
@@ -102,34 +112,15 @@ mysqli_close($conn);
 //input: options for target and ccy
 //output: queries string
 function genQuery($target, $ccy){
-    global $target_ID, $from_date, $to_date,
-            $ezfxTb;
-    //Case1: both target and ccy are specific. Eg: Travelex, AUDMYR
-    if(substr($ccy,-3) != 'All' and substr($target,-3) != 'All') {
-        $target_query = "SELECT * FROM rates WHERE url = '$target_ID' AND RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p,'%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p,'%d-%m-%Y') <= '$to_date'";
-        // get rates from source rates
-        $source_query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p,'%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p,'%d-%m-%Y') <= '$to_date'";
-        
-    //Case2: only target is specific. Eg: Travelex, All
-    }elseif(substr($ccy,-3) == 'All' and substr($target,-3) != 'All') {
-        $target_query = "SELECT * FROM rates WHERE url = '$target_ID' AND STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
-        // get rates from source rates
-        $source_query = "SELECT * FROM $ezfxTb WHERE STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
+    global $target_ID, $from_date, $to_date, $ezfxTb;
 
-    //Case3: only ccy is specific. Eg: All, AUDMYR
-    }elseif(substr($ccy,-3) != 'All' and substr($target,-3) == 'All') {
-        $target_query = "SELECT * FROM rates WHERE RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
-        // get rates from source rates
-        $source_query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
-
-    //Case4: All-All
-    }else {
-        $target_query = "SELECT * FROM rates WHERE STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
-        // get rates from source rates
-        $source_query = "SELECT * FROM $ezfxTb WHERE STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date'";
+    if($target != 'EZFX'){
+        $target_query = "SELECT * FROM rates WHERE url = '$target_ID' AND RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p,'%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p,'%d-%m-%Y') <= '$to_date' ORDER BY STR_TO_DATE(date_p,'%d-%m-%Y')";
+    }else{
+        $target_query = "SELECT * FROM $ezfxTb WHERE RIGHT(ID,6) = '$ccy' AND STR_TO_DATE(date_p, '%d-%m-%Y') >= '$from_date' AND STR_TO_DATE(date_p, '%d-%m-%Y') <= '$to_date' ORDER BY STR_TO_DATE(date_p,'%d-%m-%Y')";
     }
 
-    return array($target_query, $source_query);
+    return $target_query;
 }
 
 ?>
