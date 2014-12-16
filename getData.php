@@ -5,6 +5,7 @@ $ezfxTb = 'ezfxrates';
 $target_name = $_GET['target_name'];
 $chosen_date = $_GET['chosen_date'];
 $view_as = $_GET['view_as'];
+
 // Change the formate
 $chosen_date = date("d-m-Y", strtotime($chosen_date));
 // Database connection
@@ -22,15 +23,24 @@ while($row = mysqli_fetch_array($criteria))
     if($row['Name'] == $target_name){ $target_ID = $row['ID'];}
     if($row['Name'] == $source_name){ $source_ID = $row['ID'];}
 }
+
+//determine which table to get data
+if($target_ID == 'TRA' or $target_ID == 'MMM' or $target_ID == 'MUS'){
+    $nameOfTb = 'RATES';
+}else{
+    $nameOfTb = $target_ID.'rates';
+}
+
 // get rates from target rates table
-$query = "SELECT * FROM rates WHERE url = '$target_ID' AND date_p = '$chosen_date' ";
+$query = "SELECT * FROM $nameOfTb WHERE url = '$target_ID' AND date_p = '$chosen_date' ";
 $target_rate = mysqli_query($conn, $query);
 // get rates from source rates
 if($source_name == 'EZFX'){
     $query = "SELECT * FROM $ezfxTb WHERE date_p = '$chosen_date' ";
 }else {
-    $query = "SELECT * FROM rates WHERE date_p = '$chosen_date' and url = '$source_ID'"; 
+    $query = "SELECT * FROM $nameOfTb WHERE date_p = '$chosen_date' and url = '$source_ID'"; 
 }
+
 $source_rate = mysqli_query($conn, $query);
 
 //change the target name, source name to their ID respectively if they are too long

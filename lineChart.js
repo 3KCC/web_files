@@ -1,5 +1,5 @@
 //on ready function
-$(function (){
+$(function(){
     //when check All, all boxes are checked
     $('#checkAll').change(function(){
         if($('#checkAll').is(':checked')){
@@ -8,6 +8,7 @@ $(function (){
             $('form input:checkbox').prop('checked', false);
         }
     });
+
     //after check All, all boxes are checked. Then uncheck one box, uncheck All also
     $('.target_name').change(function(){
         if(this.id != 'All'){
@@ -44,6 +45,7 @@ $(function (){
             }
         }
     });
+
     //validate value for manual input
     $('#pt_quantity').change(function(){
         var currentVal = parseInt($('#pt_quantity').val());
@@ -87,10 +89,9 @@ $(function (){
         // sent from the server and will update
         // div section in the same page.
         ajaxRequest.onreadystatechange = function(){
-            var row = [];
             //data from PHP is ready
             if(ajaxRequest.readyState == 4){
-                js_obj_data = ajaxRequest.responseText;
+                var js_obj_data = JSON.parse(ajaxRequest.responseText);//canot be empty. Cause unexpected error
                 //alert(js_obj_data);
 
                 //colors for different line
@@ -98,42 +99,50 @@ $(function (){
                     ["rgba(172,194,132,0.4)", "#ACC26D", "rgba(172,194,132,1)", "#fff", "#fff", "#9DB86D"],
                     ["rgba(151,187,205,0.2)", "rgba(151,187,205,1)", "rgba(151,187,205,1)", "#fff", "#fff", "rgba(151,187,205,1)"],
                     ["rgba(205,157,157,0.2)", "rgba(205,157,157,1)", "rgba(205,157,157,1)", "#fff", "#fff", "rgba(205,157,157,1)"],
-                    ["rgba(232,223,102,0.2)", "rgba(232,223,102,1)", "rgba(232,223,102,1)", "#fff", "#fff", "rgba(232,223,102,1)"]
+                    ["rgba(232,223,102,0.2)", "rgba(232,223,102,1)", "rgba(232,223,102,1)", "#fff", "#fff", "rgba(232,223,102,1)"],
+                    ["rgba(179,124,104,0.2)", "rgba(179,124,104,1)", "rgba(179,124,104,1)", "#fff", "#fff", "rgba(179,124,104,1)"],
+                    ["rgba(116,125,145,0.2)", "rgba(116,125,145,1)", "rgba(116,125,145,1)", "#fff", "#fff", "rgba(116,125,145,1)"]
                 ];
 
-                //if there is enough data to draw
-                if(js_obj_data.length > 0){
-
+                //if there esists and is enoguh data to draw
+                if(js_obj_data.length > 0 && js_obj_data[1].length > 1){
                     //destroy old graph to prevent hover problems caused display old chart
                     if(typeof myLineChart !== 'undefined'){
                         myLineChart.destroy();
                     }
 
-                    var js_obj_data = JSON.parse(ajaxRequest.responseText);
                     //prepare data
-                    row = js_obj_data[1];
                     var format_array = [];
+                    var row = js_obj_data[1];
+                    
+                    var len = row.length;
+                    var max = $('#pt_quantity').val(); //fix maximum points
+                    if(len > max){
+                        var keep_points = [0]; //keep the first data points
+                        for(var j = 1; j < max - 1; j++){
+                            var index =  Math.floor( j*((len-1)/(max-1)) );
+                            keep_points.push(index);
+                        }
+                        keep_points.push(len - 1); //keep the last data points
+                    }
 
+                    if(typeof keep_points !== 'undefined'){
+                        var temp_row = [];
+                        keep_points.forEach(function(entry) {
+                            temp_row.push(row[entry]);
+                        });
+                        row = temp_row;
+                    }
                     //assgin data and format
                     for(var i = 0; i < js_obj_data[0].length; i++){
-
-                        //reduce data points if over 20 points
                         var data = js_obj_data[0][i];
-                        var len = data.length;
-                        var max = $('#pt_quantity').val(); //fix maximum points
-                        if(len > max){
-                            var temp_data = [data[0]];
-                            var temp_row = [row[0]];
-                            var index;
-                            for(var j = 1; j < max - 1; j++){
-                                index =  Math.floor( j*(len/max) );
-                                temp_data.push(data[ index ]);
-                                temp_row.push(row[ index ]);
-                            }
-                            temp_data.push(data[ len - 1 ]);
-                            temp_row.push(row[ len - 1 ]);
+                        if(typeof keep_points !== 'undefined'){
+                            //reduce data points if over 20 points
+                            var temp_data = [];
+                            keep_points.forEach(function(entry) {
+                                temp_data.push(data[entry]);
+                            });
                             data = temp_data;
-                            row = temp_row;
                         }
 
                         format_array.push(
@@ -148,7 +157,7 @@ $(function (){
                                 data : data
                             }
                         );
-                    }
+                    }//end for
 
                     //declare data obj for drawing chart
                     var chartData = {
@@ -156,7 +165,7 @@ $(function (){
                         datasets: format_array
                     };
 
-                    $('#offer_bid').empty().prepend('<p>OFFER</p>');
+                    $('#title_bo').empty().prepend('<p>' + bid_offer.toUpperCase() + '</p>');
                     //canvas for drawing chart                   
                     var canvas = document.getElementById('buyers');
                     var buyers = canvas.getContext('2d');
@@ -179,13 +188,18 @@ $(function (){
                     var w = $('#buyers').width();
                     var h = $('#buyers').height();
                     $('#buyers').remove(); // this is my <canvas> element
-                    $('#offer_bid').after('<canvas id="buyers"></canvas>');
+                    $('#title_bo').empty().prepend('<p>' + bid_offer.toUpperCase() + '</p>');
+                    $('#title_bo').after('<canvas id="buyers"></canvas>');
 
                     var buyers = document.getElementById('buyers').getContext('2d');
                     buyers.canvas.width = w; // resize to parent width
                     buyers.canvas.height = h; // resize to parent height
-                    buyers.font="30px Verdana";
-                    buyers.fillText("No data to display!",50,50);
+                    buyers.font="20px Verdana";
+                    if(js_obj_data.length == 0){
+                        buyers.fillText("No data to display!",150,50);
+                    }else{
+                        buyers.fillText("It requires at least 2 data points to draw!",30,50);
+                    }
                 }
             }//end if: PHP data is returned
         };//end onreadystagechange
@@ -212,8 +226,17 @@ $(function (){
         var CCY_pair = document.getElementById('CCY_pair').value;
         var from_date = document.getElementById('from_date').value;
         var to_date = document.getElementById('to_date').value;
+        var bid_offer = document.getElementsByClassName('bid_offer');
+        for (var i = 0; i < bid_offer.length; i++) {
+          if (bid_offer[i].type === "radio" && bid_offer[i].checked) {
+            bid_offer = bid_offer[i].value;
+            break;
+          };
+        }
+        
         var queryString = "?targets=" + targets + "&CCY_pair=" + CCY_pair ;
         queryString +=  "&from_date=" + from_date + "&to_date=" + to_date ;
+        queryString +=  "&bid_offer=" + bid_offer;
         ajaxRequest.open("GET", "js/lineChart.php" + 
                         queryString, true);
         ajaxRequest.send(null);
